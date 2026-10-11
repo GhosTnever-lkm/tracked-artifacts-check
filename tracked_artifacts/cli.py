@@ -1,4 +1,4 @@
-"""tracked-artifacts-check [PATH] [--large-mb N] [--json]"""
+"""tracked-artifacts-check [PATH] [--large-mb N] [--allow GLOB] [--json]"""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="tracked-artifacts-check", description="Find artifacts, secrets files and large binaries tracked by git.")
     p.add_argument("path", nargs="?", default=".")
     p.add_argument("--large-mb", type=float, default=DEFAULT_LARGE_BYTES / (1024 * 1024), help="size threshold in MiB (default 5)")
+    p.add_argument("--allow", action="append", default=[], metavar="GLOB", help="ignore findings for matching paths, e.g. 'fixtures/*.pem' (repeatable)")
     p.add_argument("--json", action="store_true")
     p.add_argument("--version", action="version", version=__version__)
     args = p.parse_args(argv)
@@ -28,7 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     except (subprocess.CalledProcessError, FileNotFoundError) as exc:
         print(f"tracked-artifacts-check: cannot list git files in {args.path}: {exc}", file=sys.stderr)
         return 2
-    findings = scan(files, large_bytes=int(args.large_mb * 1024 * 1024))
+    findings = scan(files, large_bytes=int(args.large_mb * 1024 * 1024), allow=tuple(args.allow))
     if args.json:
         print(json.dumps([asdict(f) for f in findings], indent=2, ensure_ascii=False))
     elif not findings:

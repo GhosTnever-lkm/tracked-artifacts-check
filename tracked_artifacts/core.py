@@ -73,6 +73,12 @@ def tracked_files(root: str | Path) -> list[tuple[str, int | None]]:
     return result
 
 
-def scan(files: list[tuple[str, int | None]], large_bytes: int = DEFAULT_LARGE_BYTES) -> list[Finding]:
+def scan(
+    files: list[tuple[str, int | None]],
+    large_bytes: int = DEFAULT_LARGE_BYTES,
+    allow: tuple[str, ...] = (),
+) -> list[Finding]:
+    """Return artifact findings, dropping any path matched by an --allow glob."""
     findings = [classify(path, size, large_bytes) for path, size in files]
-    return [f for f in findings if f is not None]
+    kept = [f for f in findings if f is not None]
+    return [f for f in kept if not any(_matches(f.path, glob) for glob in allow)]

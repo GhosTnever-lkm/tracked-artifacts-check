@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `--allow GLOB` (repeatable) to ignore findings for intentionally committed fixtures.
+
 ## [0.1.0] - 2026-10-11
 
 ### Added

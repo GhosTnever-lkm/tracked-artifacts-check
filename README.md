@@ -8,6 +8,7 @@
 python -m tracked_artifacts                  # текущий репозиторий
 python -m tracked_artifacts . --large-mb 1   # порог крупного файла 1 МиБ
 python -m tracked_artifacts . --json
+python -m tracked_artifacts . --allow "tests/fixtures/*"   # исключить намеренно закоммиченные файлы
 ```
 
 Пример вывода:

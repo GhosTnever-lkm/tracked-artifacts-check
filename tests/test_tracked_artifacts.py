@@ -32,6 +32,10 @@ class ClassifyTests(unittest.TestCase):
     def test_clean_source_file(self):
         self.assertIsNone(classify("src/app.py", size=2048))
 
+    def test_allow_filters_scan(self):
+        found = scan([("docs/key.pem", 1), (".env", 2)], allow=("docs/*",))
+        self.assertEqual([f.path for f in found], [".env"])
+
     def test_scan_collects_only_matches(self):
         found = scan([("a.py", 10), (".env", 5), ("docs/x.md", 1)])
         self.assertEqual([f.path for f in found], [".env"])
@@ -65,6 +69,12 @@ class GitTests(unittest.TestCase):
         code, out = self.run_cli(["--json", str(root)])
         self.assertEqual(code, 0)
         self.assertEqual(json.loads(out), [])
+
+    def test_allow_glob_suppresses_known_fixture(self):
+        root = self.make_repo({"tests/fixtures/key.pem": b"not a real key\n", ".env": b"X=1\n"})
+        self.assertEqual(self.run_cli(["--allow", "tests/fixtures/*", str(root)])[0], 1)
+        code, out = self.run_cli(["--allow", "tests/fixtures/*", "--json", str(root)])
+        self.assertEqual([f["path"] for f in json.loads(out)], [".env"])
 
     def test_large_threshold_option(self):
         root = self.make_repo({"blob.bin": b"x" * 2048})
