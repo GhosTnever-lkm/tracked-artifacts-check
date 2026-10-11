@@ -1,0 +1,81 @@
+import contextlib
+import io
+import json
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+
+from tracked_artifacts.cli import main
+from tracked_artifacts.core import classify, scan
+
+
+class ClassifyTests(unittest.TestCase):
+    def test_secret_files(self):
+        self.assertEqual(classify(".env").category, "secret-file")
+        self.assertEqual(classify("config/.env.production").category, "secret-file")
+        self.assertEqual(classify("deploy/server.pem").category, "secret-file")
+
+    def test_example_env_is_allowed(self):
+        self.assertIsNone(classify(".env.example"))
+        self.assertIsNone(classify("config/.env.sample"))
+
+    def test_dependency_and_build_dirs(self):
+        self.assertEqual(classify("node_modules/left-pad/index.js").category, "dependency-dir")
+        self.assertEqual(classify("src/__pycache__/x.cpython-313.pyc").category, "build-output")
+        self.assertEqual(classify("pkg/mod.pyc").category, "build-output")
+
+    def test_large_file_threshold(self):
+        self.assertEqual(classify("data/model.bin", size=6 * 1024 * 1024).category, "large-file")
+        self.assertIsNone(classify("data/model.bin", size=1024))
+
+    def test_clean_source_file(self):
+        self.assertIsNone(classify("src/app.py", size=2048))
+
+    def test_scan_collects_only_matches(self):
+        found = scan([("a.py", 10), (".env", 5), ("docs/x.md", 1)])
+        self.assertEqual([f.path for f in found], [".env"])
+
+
+class GitTests(unittest.TestCase):
+    def make_repo(self, files: dict[str, bytes]) -> Path:
+        root = Path(tempfile.mkdtemp())
+        subprocess.run(["git", "init", "-q", str(root)], check=True)
+        for name, data in files.items():
+            p = root / name
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_bytes(data)
+        subprocess.run(["git", "-C", str(root), "add", "-A"], check=True)
+        return root
+
+    def run_cli(self, argv):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            code = main(argv)
+        return code, buf.getvalue()
+
+    def test_committed_env_fails(self):
+        root = self.make_repo({".env": b"TOKEN=1\n", "app.py": b"print(1)\n"})
+        code, out = self.run_cli([str(root)])
+        self.assertEqual(code, 1)
+        self.assertIn(".env", out)
+
+    def test_clean_repo_passes_and_json(self):
+        root = self.make_repo({"app.py": b"print(1)\n", ".env.example": b"TOKEN=\n"})
+        code, out = self.run_cli(["--json", str(root)])
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(out), [])
+
+    def test_large_threshold_option(self):
+        root = self.make_repo({"blob.bin": b"x" * 2048})
+        self.assertEqual(self.run_cli(["--large-mb", "0.001", str(root)])[0], 1)
+        self.assertEqual(self.run_cli([str(root)])[0], 0)
+
+    def test_not_a_git_repo_exit_two(self):
+        with contextlib.redirect_stderr(io.StringIO()):
+            code, _ = self.run_cli([tempfile.mkdtemp()])
+        self.assertEqual(code, 2)
+
+
+if __name__ == "__main__":
+    unittest.main()
