@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import subprocess
 import sys
 from dataclasses import asdict
@@ -21,6 +22,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--json", action="store_true")
     p.add_argument("--version", action="version", version=__version__)
     args = p.parse_args(argv)
+    if not math.isfinite(args.large_mb) or args.large_mb <= 0:
+        p.error("--large-mb must be a finite number greater than 0")
     if not Path(args.path).is_dir():
         print(f"tracked-artifacts-check: not a directory: {args.path}", file=sys.stderr)
         return 2

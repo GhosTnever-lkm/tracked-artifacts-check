@@ -4,6 +4,13 @@
 
 ## Быстрый старт
 
+Установка последней версии:
+
+```bash
+python -m pip install "tracked-artifacts-check @ git+https://github.com/GhosTnever-lkm/tracked-artifacts-check.git@v0.1.2"
+tracked-artifacts-check --help
+```
+
 ```bash
 python -m tracked_artifacts                  # текущий репозиторий
 python -m tracked_artifacts . --large-mb 1   # порог крупного файла 1 МиБ
@@ -29,6 +36,8 @@ python -m tracked_artifacts . --allow "tests/fixtures/*"   # исключить 
 | `os-junk` | `.DS_Store`, `Thumbs.db` |
 | `log-file`, `archive`, `binary` | `*.log`, `*.zip`, `*.tar.gz`, `*.exe`, `*.dll` |
 | `large-file` | любой файл не меньше порога (по умолчанию 5 МиБ) |
+
+Порог `--large-mb` должен быть конечным числом больше нуля.
 
 Шаблоны вида `.env.example`, `.env.sample`, `.env.template` разрешены.
 

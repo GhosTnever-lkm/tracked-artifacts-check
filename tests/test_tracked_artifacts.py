@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tracked_artifacts import __version__
 from tracked_artifacts.cli import main
 from tracked_artifacts.core import classify, scan
 
@@ -80,6 +81,20 @@ class GitTests(unittest.TestCase):
         root = self.make_repo({"blob.bin": b"x" * 2048})
         self.assertEqual(self.run_cli(["--large-mb", "0.001", str(root)])[0], 1)
         self.assertEqual(self.run_cli([str(root)])[0], 0)
+
+    def test_invalid_large_thresholds_are_rejected(self):
+        for value in ("-1", "0", "nan", "inf", "-inf"):
+            with self.subTest(value=value), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as raised:
+                    main(["--large-mb", value])
+            self.assertEqual(raised.exception.code, 2)
+
+    def test_version_is_reported_exactly(self):
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            with self.assertRaises(SystemExit) as raised:
+                main(["--version"])
+        self.assertEqual(raised.exception.code, 0)
+        self.assertEqual(output.getvalue(), f"{__version__}\n")
 
     def test_not_a_git_repo_exit_two(self):
         with contextlib.redirect_stderr(io.StringIO()):
