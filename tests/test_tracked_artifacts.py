@@ -17,6 +17,10 @@ class ClassifyTests(unittest.TestCase):
         self.assertEqual(classify("config/.env.production").category, "secret-file")
         self.assertEqual(classify("deploy/server.pem").category, "secret-file")
 
+    def test_secret_matching_is_case_insensitive_and_portable(self):
+        self.assertEqual(classify("CONFIG/.ENV", 10).category, "secret-file")
+        self.assertIsNone(classify("CONFIG/.ENV.EXAMPLE", 10))
+
     def test_example_env_is_allowed(self):
         self.assertIsNone(classify(".env.example"))
         self.assertIsNone(classify("config/.env.sample"))
@@ -36,6 +40,10 @@ class ClassifyTests(unittest.TestCase):
     def test_allow_filters_scan(self):
         found = scan([("docs/key.pem", 1), (".env", 2)], allow=("docs/*",))
         self.assertEqual([f.path for f in found], [".env"])
+
+    def test_allow_globs_use_portable_case_insensitive_matching(self):
+        found = scan([("Docs/Fixture.pem", 1)], allow=("docs/*",))
+        self.assertEqual(found, [])
 
     def test_scan_collects_only_matches(self):
         found = scan([("a.py", 10), (".env", 5), ("docs/x.md", 1)])
@@ -82,8 +90,12 @@ class GitTests(unittest.TestCase):
         self.assertEqual(self.run_cli(["--large-mb", "0.001", str(root)])[0], 1)
         self.assertEqual(self.run_cli([str(root)])[0], 0)
 
+    def test_tiny_positive_threshold_is_at_least_one_byte(self):
+        root = self.make_repo({"one-byte.bin": b"x"})
+        self.assertEqual(self.run_cli(["--large-mb", "1e-320", str(root)])[0], 1)
+
     def test_invalid_large_thresholds_are_rejected(self):
-        for value in ("-1", "0", "nan", "inf", "-inf"):
+        for value in ("-1", "0", "nan", "inf", "-inf", "1e308"):
             with self.subTest(value=value), contextlib.redirect_stderr(io.StringIO()):
                 with self.assertRaises(SystemExit) as raised:
                     main(["--large-mb", value])

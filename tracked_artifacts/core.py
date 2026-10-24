@@ -45,12 +45,17 @@ class Finding:
 
 def _matches(path: str, pattern: str) -> bool:
     name = path.rsplit("/", 1)[-1]
-    return fnmatch.fnmatch(path, pattern) or fnmatch.fnmatch(name, pattern)
+    # fnmatch.fnmatch follows host OS case rules. Casefolded fnmatchcase keeps
+    # scans and allow globs consistent across Windows and POSIX.
+    normalized_pattern = pattern.casefold()
+    return fnmatch.fnmatchcase(path.casefold(), normalized_pattern) or fnmatch.fnmatchcase(
+        name.casefold(), normalized_pattern
+    )
 
 
 def classify(path: str, size: int | None = None, large_bytes: int = DEFAULT_LARGE_BYTES) -> Finding | None:
     name = path.rsplit("/", 1)[-1]
-    if name.endswith(EXAMPLE_ENV_SUFFIXES):
+    if name.casefold().endswith(EXAMPLE_ENV_SUFFIXES):
         return None
     for pattern, category in RULES:
         if _matches(path, pattern):

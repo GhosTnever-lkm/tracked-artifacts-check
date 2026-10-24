@@ -24,6 +24,9 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
     if not math.isfinite(args.large_mb) or args.large_mb <= 0:
         p.error("--large-mb must be a finite number greater than 0")
+    threshold_bytes = args.large_mb * 1024 * 1024
+    if not math.isfinite(threshold_bytes):
+        p.error("--large-mb is too large to represent as a byte threshold")
     if not Path(args.path).is_dir():
         print(f"tracked-artifacts-check: not a directory: {args.path}", file=sys.stderr)
         return 2
@@ -32,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     except (subprocess.CalledProcessError, FileNotFoundError) as exc:
         print(f"tracked-artifacts-check: cannot list git files in {args.path}: {exc}", file=sys.stderr)
         return 2
-    findings = scan(files, large_bytes=int(args.large_mb * 1024 * 1024), allow=tuple(args.allow))
+    findings = scan(files, large_bytes=max(1, int(threshold_bytes)), allow=tuple(args.allow))
     if args.json:
         print(json.dumps([asdict(f) for f in findings], indent=2, ensure_ascii=False))
     elif not findings:
