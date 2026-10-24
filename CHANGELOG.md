@@ -5,6 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-25
+
+### Fixed
+- Make rule and allow-glob matching case-insensitive and consistent across operating systems.
+- Reject size thresholds that overflow when converted to bytes, and round positive sub-byte thresholds up to one byte.
+
+### Added
+- Regression tests for portable matching and numeric boundaries.
+
 ## [0.1.2] - 2026-10-12
 
 ### Added

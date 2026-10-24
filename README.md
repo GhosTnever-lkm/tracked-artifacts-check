@@ -7,7 +7,7 @@
 Установка последней версии:
 
 ```bash
-python -m pip install "tracked-artifacts-check @ git+https://github.com/GhosTnever-lkm/tracked-artifacts-check.git@v0.1.2"
+python -m pip install "tracked-artifacts-check @ git+https://github.com/GhosTnever-lkm/tracked-artifacts-check.git@v0.1.3"
 tracked-artifacts-check --help
 ```
 
@@ -37,7 +37,7 @@ python -m tracked_artifacts . --allow "tests/fixtures/*"   # исключить 
 | `log-file`, `archive`, `binary` | `*.log`, `*.zip`, `*.tar.gz`, `*.exe`, `*.dll` |
 | `large-file` | любой файл не меньше порога (по умолчанию 5 МиБ) |
 
-Порог `--large-mb` должен быть конечным числом больше нуля.
+Порог `--large-mb` должен быть конечным числом больше нуля. Положительные значения меньше одного байта округляются вверх до одного байта; значения, которые переполняют байтовый порог, отклоняются. Правила и allow-глобы сравнивают пути без учёта регистра на всех ОС.
 
 Шаблоны вида `.env.example`, `.env.sample`, `.env.template` разрешены.
 
