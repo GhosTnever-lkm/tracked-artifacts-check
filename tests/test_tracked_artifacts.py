@@ -8,7 +8,7 @@ from pathlib import Path
 
 from tracked_artifacts import __version__
 from tracked_artifacts.cli import main
-from tracked_artifacts.core import classify, scan
+from tracked_artifacts.core import classify, scan, tracked_files
 
 
 class ClassifyTests(unittest.TestCase):
@@ -72,6 +72,20 @@ class GitTests(unittest.TestCase):
         code, out = self.run_cli([str(root)])
         self.assertEqual(code, 1)
         self.assertIn(".env", out)
+
+    def test_large_file_uses_index_blob_size_not_working_tree_size(self):
+        root = self.make_repo({"payload.bin": b"x" * (6 * 1024 * 1024)})
+        (root / "payload.bin").write_bytes(b"x")
+        files = tracked_files(root)
+        self.assertEqual(files, [("payload.bin", 6 * 1024 * 1024)])
+        self.assertEqual(scan(files)[0].category, "large-file")
+
+    def test_working_tree_growth_does_not_change_index_blob_size(self):
+        root = self.make_repo({"payload.bin": b"x"})
+        (root / "payload.bin").write_bytes(b"x" * (6 * 1024 * 1024))
+        files = tracked_files(root)
+        self.assertEqual(files, [("payload.bin", 1)])
+        self.assertEqual(scan(files), [])
 
     def test_clean_repo_passes_and_json(self):
         root = self.make_repo({"app.py": b"print(1)\n", ".env.example": b"TOKEN=\n"})

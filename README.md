@@ -7,7 +7,7 @@
 Установка последней версии:
 
 ```bash
-python -m pip install "tracked-artifacts-check @ git+https://github.com/GhosTnever-lkm/tracked-artifacts-check.git@v0.1.3"
+python -m pip install "tracked-artifacts-check @ git+https://github.com/GhosTnever-lkm/tracked-artifacts-check.git@v0.1.4"
 tracked-artifacts-check --help
 ```
 
