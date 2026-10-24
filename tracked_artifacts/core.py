@@ -67,15 +67,37 @@ def classify(path: str, size: int | None = None, large_bytes: int = DEFAULT_LARG
 
 def tracked_files(root: str | Path) -> list[tuple[str, int | None]]:
     base = Path(root)
-    out = subprocess.run(["git", "-C", str(base), "ls-files", "-z"], capture_output=True, check=True)
-    result = []
-    for raw in out.stdout.decode("utf-8", errors="replace").split("\0"):
+    out = subprocess.run(["git", "-C", str(base), "ls-files", "--stage", "-z"], capture_output=True, check=True)
+    indexed: dict[str, tuple[bytes, bytes]] = {}
+    for raw in out.stdout.split(b"\0"):
         if not raw:
             continue
-        file = base / raw
-        size = file.stat().st_size if file.is_file() else None
-        result.append((raw, size))
-    return result
+        metadata, raw_path = raw.split(b"\t", 1)
+        mode, object_id, stage = metadata.split()
+        path = raw_path.decode("utf-8", errors="replace")
+        # Prefer stage 0 for resolved files. For an unmerged path, retain the
+        # first index stage rather than duplicating the path in the report.
+        if path not in indexed or stage == b"0":
+            indexed[path] = (mode, object_id)
+
+    paths = list(indexed)
+    blob_ids = [indexed[path][1] for path in paths if indexed[path][0] != b"160000"]
+    sizes: dict[bytes, int | None] = {}
+    if blob_ids:
+        size_out = subprocess.run(
+            ["git", "-C", str(base), "cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)"],
+            input=b"\n".join(blob_ids) + b"\n",
+            capture_output=True,
+            check=True,
+        )
+        for line in size_out.stdout.splitlines():
+            object_id, object_type, raw_size = line.split()
+            sizes[object_id] = int(raw_size) if object_type == b"blob" else None
+
+    return [
+        (path, None if indexed[path][0] == b"160000" else sizes.get(indexed[path][1]))
+        for path in paths
+    ]
 
 
 def scan(
