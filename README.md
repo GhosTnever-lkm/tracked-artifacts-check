@@ -7,7 +7,7 @@
 Установка последней версии:
 
 ```bash
-python -m pip install "tracked-artifacts-check @ git+https://github.com/GhosTnever-lkm/tracked-artifacts-check.git@v0.1.4"
+python -m pip install "tracked-artifacts-check @ git+https://github.com/GhosTnever-lkm/tracked-artifacts-check.git@v0.1.5"
 tracked-artifacts-check --help
 ```
 
@@ -30,7 +30,7 @@ python -m tracked_artifacts . --allow "tests/fixtures/*"   # исключить 
 
 | Категория | Примеры |
 | --- | --- |
-| `secret-file` | `.env`, `.env.production`, `*.pem`, `*.key`, `id_rsa`, `*.p12` |
+| `secret-file` | `.env`, `.env.production`, `*.pem`, `*.key`, OpenSSH private keys (`id_rsa`, `id_ecdsa`, `id_ed25519`, `id_dsa`, and security-key variants), `*.p12` |
 | `dependency-dir` | `node_modules/`, `.venv/`, `venv/` |
 | `build-output` | `__pycache__/`, `*.pyc`, `dist/`, `build/`, `*.egg-info/` |
 | `os-junk` | `.DS_Store`, `Thumbs.db` |
