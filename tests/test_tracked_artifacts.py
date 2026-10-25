@@ -17,6 +17,12 @@ class ClassifyTests(unittest.TestCase):
         self.assertEqual(classify("config/.env.production").category, "secret-file")
         self.assertEqual(classify("deploy/server.pem").category, "secret-file")
 
+    def test_common_openssh_private_key_names_are_flagged_but_public_keys_are_not(self):
+        for name in ("id_rsa", "id_ecdsa", "id_ed25519", "id_dsa", "id_rsa_sk", "id_ecdsa_sk", "id_ed25519_sk"):
+            with self.subTest(name=name):
+                self.assertEqual(classify(f".ssh/{name}").category, "secret-file")
+        self.assertIsNone(classify(".ssh/id_ed25519.pub"))
+
     def test_secret_matching_is_case_insensitive_and_portable(self):
         self.assertEqual(classify("CONFIG/.ENV", 10).category, "secret-file")
         self.assertIsNone(classify("CONFIG/.ENV.EXAMPLE", 10))
@@ -87,6 +93,17 @@ class GitTests(unittest.TestCase):
         code, out = self.run_cli([str(root)])
         self.assertEqual(code, 1)
         self.assertIn(".env", out)
+
+    def test_committed_openssh_private_key_fails_but_public_key_passes(self):
+        private_repo = self.make_repo({".ssh/id_ed25519": b"fake test fixture, not a real key\n"})
+        code, out = self.run_cli([str(private_repo)])
+        self.assertEqual(code, 1)
+        self.assertIn(".ssh/id_ed25519", out)
+
+        public_repo = self.make_repo({".ssh/id_ed25519.pub": b"ssh-ed25519 TEST-FIXTURE\n"})
+        code, out = self.run_cli([str(public_repo)])
+        self.assertEqual(code, 0)
+        self.assertIn("no artifacts found", out)
 
     def test_large_file_uses_index_blob_size_not_working_tree_size(self):
         root = self.make_repo({"payload.bin": b"x" * (6 * 1024 * 1024)})
