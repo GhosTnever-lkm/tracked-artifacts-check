@@ -37,6 +37,21 @@ class ClassifyTests(unittest.TestCase):
     def test_clean_source_file(self):
         self.assertIsNone(classify("src/app.py", size=2048))
 
+
+class DocumentationTests(unittest.TestCase):
+    def test_readme_ci_example_uses_the_actions_pinned_by_workflows(self):
+        root = Path(__file__).resolve().parents[1]
+        readme = (root / "README.md").read_text(encoding="utf-8")
+        workflow = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        expected = {
+            line.split("#", 1)[0].strip().removeprefix("-").strip()
+            for line in workflow.splitlines()
+            if "uses: actions/" in line
+        }
+        for action in expected:
+            with self.subTest(action=action):
+                self.assertIn(action, readme)
+
     def test_allow_filters_scan(self):
         found = scan([("docs/key.pem", 1), (".env", 2)], allow=("docs/*",))
         self.assertEqual([f.path for f in found], [".env"])
